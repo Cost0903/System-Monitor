@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+
+<head>
+    <meta http-equiv=Content-Type content="text/html;charset=utf8">
+    <html lang="zh">
+</head>
+    <!--#region rightSide-->
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+
+        <nav class="row mt-2 mx-1 align-items-center">
+
+            <div class="col-2 bg-white text-center">
+                <div class="header-img lh-lg"></div>
+            </div>
+            <div class="col-10 text-center">
+                <span class="header-text fw-bold text-white h5">{{title}}</span>
+            </div>
+
+        </nav>
+    <!--#region UP-->
+    <!--
+    <div class="page">
+        <div class="header">
+        </div>
+        <div
+            class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">
+                <div class="col-2 bg-white text-center">
+                    <div class="header-img lh-lg"></div>
+                </div>
+                {{title}}
+            </h1>
+        </div>
+    -->
+
+        <!--#endregion-->
+        <!--style="margin-top:25px"> -->
+        <div class="wraper">
+
+            <table class="table mt-3" align="left" cellpadding="6" border="1">
+                <thead class="table-gray">
+                    <tr>
+                        <td colspan="2" class="straight-line">
+                            <b>主機資訊</b>
+                        </td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>群組:</td>
+                        <td> {{ am.mygroup.name }}</td>
+                    </tr>
+                    <tr>
+                        <td>主機名稱:</td>
+                        <td> {{ am.hostName }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!--Table-->
+            <div class="wraper">
+                <div class="content">
+                    <table class="table table-bordered table-striped table-sm dashboard"
+                        style="border: 1px solid black">
+                        <thead class="table-gray">
+                            <tr align="middle">
+                                <td class="straight-line"></td>
+                                <td colspan="3" class="straight-line"><b>平均值</b></td>
+                                <td colspan="3" class="straight-line"><b>最大值</b></td>
+                            </tr>
+                        </thead>
+                        <thead class="table-gray">
+                            <tr align="middle">
+                                <td align="left" class="straight-line">時間區間</td>
+                                <td>Cpu</td>
+                                <td>Mem</td>
+                                <td class="straight-line">Swap</td>
+                                <!-- <td class="straight-line">Disk</td> -->
+                                <td>Cpu</td>
+                                <td>Mem</td>
+                                <td class="straight-line">Swap</td>
+                                <!-- <td class="straight-line">Disk</td> -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr align="middle">
+                                <td align="left">{{ log.datetime }}</td>
+                                <td class="dashboard">{{ log.avg_cpu_usage }} %</td>
+                                <td class="dashboard">{{ log.avg_memory_usage }} %</td>
+                                <td class="dashboard" class="straight-line">{{ log.avg_swap_usage }} %</td>
+                                <!-- <td class="dashboard" class="straight-line">{{ log.avg_disk_usage }} %</td> -->
+                                <td class="dashboard">{{ log.max_cpu_usage }} %</td>
+                                <td class="dashboard">{{ log.max_memory_usage }} %</td>
+                                <td class="dashboard" class="straight-line">{{ log.max_swap_usage }} %</td>
+                                <!-- <td class="dashboard" class="straight-line">{{ log.max_disk_usage }} %</td> -->
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<!--#endregion-->

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+
+{% load static %}
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!--<link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/dashboard/">-->
+    <link rel="stylesheet" href="{% static '/css/dashboard.css' %}">
+    <!--Bootstrap CSS -->
+    {% comment %} <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous"> {% endcomment %}
+    <!--
+        <link href="{% static '/css/cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css' %}" å
+        rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+        crossorigin="anonymous">
+        <script src="{% static '/js/cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.min.js' %}"
+        integrity="sha384-j0CNLUeiqtyaRmlzUHCPZ+Gy5fQu0dQ6eZ/xAww941Ai1SxSY+0EQqNXNE6DZiVc"
+        crossorigin="anonymous"></script>
+        <script src="{% static '/js/cdn.jsdelivr.net/npm/@popperjs/core@2.9.1/dist/umd/popper.min.js' %}"
+        integrity="sha384-SR1sx49pcuLnqZUnnPwx6FCym0wLsk5JZuNx2bPPENzswTNFaQU1RDvt3wT4gWFG"
+        crossorigin="anonymous"></script>
+        <script src="{% static 'js/jquery.js' %}"></script>
+        <link rel="stylesheet" type="text/css" href="{% static 'css/toastr.css' %}" media="all">
+        <script type="text/javascript" src="{% static 'js/toastr.min.js' %}"></script>
+    -->
+    <!--Bootstrap-->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js" integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js" integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous"></script>
+    <!--JQuery-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!--toastr-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.3/toastr.min.css" rel="stylesheet"  />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.3/toastr.min.js"></script>
+
+    <!--Bootstrap core CSS-->
+    <style>
+        .bd-placeholder-img {
+            font-size: 1.125rem;
+            text-anchor: middle;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+        }
+
+        @media (min-width: 768px) {
+            .bd-placeholder-img-lg {
+                font-size: 3.5rem;
+            }
+        }
+
+        #sidebarMenu {
+            /*background-color: rgb(129, 216, 208);*/
+            background-color: lightgray;
+            padding-top: 10px;
+            overflow-y: auto;
+        }
+
+        li>a:hover {
+            background: white;
+            /* background: rgb(18, 179, 144); */
+
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+            var cell = $('table.dashboard td.dashboard');
+            cell.each(function () {
+                var cell_value = +$(this).html().trim().replace('%', '');
+
+                if (cell_value < 0) {
+                    $(this).css({ 'background': '#696969' });
+                } else if (cell_value >= 90) {
+                    $(this).css({ 'background': '#ff9999' });
+                } else if (cell_value >= 75) {
+                    $(this).css({ 'background': '#ffdb4d' });
+                } else {
+                    $(this).css({ 'background': 'rgba(144,238,144 ,1 )' });
+                }
+            }
+            );
+        }
+        );
+        $(document).ready(function () {
+            var cell = $('table.dashboard td.offline');
+            cell.each(function () {
+                var cell_value = $(this).html().trim();
+
+                if (cell_value == 'Online') {
+                    $(this).css({ 'background': 'rgba(144,238,144 ,1 )' });
+                } else if (cell_value == 'Offline') {
+                    $(this).css({ 'background': '#ff9999' });
+                }
+            }
+            );
+        }
+        );
+
+    </script>
+    <!-- Faster plotly -->
+    <script src="https://cdn.plot.ly/plotly-2.20.0.min.js" charset="utf-8"></script>
+    <script>
+        $(document).ready(function () {
+            var cell = $('td.error')
+            cell.each(function () {
+                var cell_value = +$(this).html()
+                if (cell_value != "") {
+                    $(this).css({ 'color': 'red' });
+                }
+            }
+            );
+        })
+    </script>
+    <script>
+        $(document).ready(function () {
+            var cell = $('td.tai')
+            cell.each(function () {
+                var cell_value = +$(this).html().trim().replace('台', '');
+                if (cell_value > 0) {
+                    $(this).css({ 'color': 'red' });
+                }
+            }
+            );
+        })
+    </script>
+
+    <title>伺服器效能日誌系統</title>
+</head>
+
+<body>
+    <!--Create toastr windows that respond to messages from Django widgets -->
+    {% if messages %}
+    {% for message in messages %}
+    {% if message.tags == 'success'%}
+    <script type=text/javascript>toastr.{{ message.tags }}('{{ message }}')</script>
+    {% elif message.tags == 'info' %}
+    <script type=text/javascript>toastr.{{ message.tags }}('{{ message }}')</script>
+    {% elif message.tags == 'warning' %}
+    <script type=text/javascript>toastr.{{ message.tags }}('{{ message }}')</script>
+    {% elif message.tags == 'error' %}
+    <script type=text/javascript>toastr.{{ message.tags }}('{{ message }}')</script>
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+
+    <!--#region sideMenu-->
+    <div class="container-fluid">
+        <div class="row">
+
+            <nav id="sidebarMenu" class="col-md-2 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky d-flex justify-content-center align-items-center align-self-center">
+                    <ul class="nav flex-column">
+                        <li class="d-flex justify-content-start p-2 ps-4 mt-1">
+                            <img class="mx-auto" class="img-banner" style="width: 80px;" alt="SYSMO"
+                                src="{% static 'image/logo.png' %}" />
+                        </li>
+                        <h6 class="sidebar-heading d-flex align-items-center px-3 mt-2 mb-1 text-muted">
+                            <img class="p-2 mb-2" style="width: 40px;" src="{% static 'image/desktop.png' %}">
+                            <span class="h5 text-dark fw-bold border-dark border-bottom">SysMo 監控系統</span>
+                        </h6>
+                        <li class="nav-item">
+                            <a class="ps-4 nav-link fw-bold" aria-current="page" href="/dashboard/">
+                                <span class="" data-feather="dashboard"></span>
+                                即時監控
+                            </a>
+                        </li>
+
+                        <h6 class="sidebar-heading d-flex align-items-center px-3 mt-2 mb-1 text-muted">
+                            <img class="p-2 mb-2" style="width: 40px;" src="{% static 'image/document.png' %}">
+                            <span class="h5 text-dark fw-bold border-dark border-bottom">儲存的報表</span>
+                        </h6>
+                        <ul class="nav flex-column mb-2">
+                            <li class="nav-item">
+                                <a class="ps-4 nav-link fw-bold" href="/customized_report/">
+                                    <span class="" data-feather="file"></span>
+                                    效能資料查詢
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="ps-4 nav-link fw-bold" href="/customized_datereport/">
+                                    <span class="" data-feather="file-text ">效能報表</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="ps-4 nav-link fw-bold" href="/query_check_report/">
+                                    <span class="" data-feather="file"></span>
+                                    作業檢核表
+                                </a>
+                            </li>
+                        </ul>
+
+                        <h6 class="sidebar-heading d-flex  align-items-center px-3 mt-2 mb-1 text-muted">
+                            <img class="p-2 mb-2" style="width: 40px;" src="{% static 'image/settings.png' %}">
+                            <span class="h5 text-dark fw-bold  border-dark border-bottom">管理人員設定</span>
+                        </h6>
+                        <ul class="nav flex-column mb-2">
+                            <li class="nav-item">
+                                <a class="ps-4 nav-link fw-bold" href="/admin/">
+                                    <span class="" data-feather="file-text">管理後臺</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="ps-4 nav-link fw-bold" href="/assign_group/">
+                                    <span class="" data-feather="file-text">群組設定</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="ps-4 nav-link fw-bold" href="/accounts/logout/">
+                                    <span class="" data-feather="file-text">登出系統</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </ul>
+                </div>
+            </nav>
+            <!--endregion-->
+
+            {% block content %}
+
+            {% endblock %}
+            </main>
+
+            <!--#endregion-->
+        </div>
+</body>
+
+</html>

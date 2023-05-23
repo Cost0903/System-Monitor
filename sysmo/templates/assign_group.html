@@ -1,0 +1,138 @@
+{% extends 'base.html' %} {% block javascript %}
+{% load static %}
+<style>
+    th,
+    td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+        font-size: 1.5rem;
+    }
+
+    .selectGroup,
+    .submitCheck {
+        font-size: 1.5rem;
+    }
+
+    tr:hover,
+    .submitCheck>input:hover {
+        background-color: #71ceaf;
+    }
+
+    .submitCheck {
+        margin-left: 10px;
+        margin-bottom: 20px;
+
+    }
+
+    .submitCheck>input {
+        cursor: pointer;
+        margin-top: 20px;
+    }
+
+    .container {
+        width: 80%;
+        margin: auto;
+        display: flex;
+        justify-content: start;
+        flex-direction: column;
+        align-content: center;
+    }
+    .container-2{
+        display: flex;
+        flex-direction: row;
+        align-items: start;
+    }
+    .gap{
+        margin: 10px;
+        padding: 10px;
+    }
+</style>
+<script src="{% static '/js/ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js' %}"></script>
+<script type="text/javascript">
+    function autoRefreshPage() {
+        window.location = window.location.href;
+    }
+    setInterval('autoRefreshPage()', 70000);
+</script>
+{% endblock javascript %} {% block content %}
+<!--#region rightSide-->
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4" onload="JavaScript:AutoRefresh(5000);">
+
+<!-- <div class="container"> -->
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2 fw-bold">群組設定</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+    </div>
+</div>
+    <form action="/assign_group/" method="post" id="assign_group">
+        <div class="container-2">
+            <div class="gap">
+                <h5 class="h4 fw-bold">To:</h5>
+                <table>
+                    <tr>
+                        <td>
+                            請選擇要移去的群組：
+                        </td>
+                        <td>
+                            <select class="selectGroup" name="to_group" required>
+                                <option value=""> --- 移去的群組 --- </option>
+                                {% for group in groups %}
+                                <option value="{{group.pk}}">{{group.name}}</option>
+                                {% endfor %}
+                        </td>
+                        <td>
+                            <div class="submitCheck">
+                                {% csrf_token %}
+                                <!-- <input class="submitCheck" type="Submit"> -->
+                                <button class="btn btn-outline-dark fw-bold m-1" >
+                                    確認
+                                </button>
+                            </div>
+                        </td>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <br>
+
+            <div class="gap">
+                <h5 class="h4 fw-bold">From:</h5>
+                <div class="wraper">
+                    <div class="content">
+                        <div class="table-responsive">
+                            <table class="table table-sm dashboard table-hover">
+                                <thead class="table-dark lh-lg">
+                                    <tr align="middle">
+                                        <td align="left" class="fs-5 text-start text-nowrap">主機名稱</td>
+                                        <td align="left" class="fs-5 text-start text-nowrap">群組</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for am in ams %}
+                                    <tr>
+                                        <td>
+                                            <input style="width:20px;height:20px;" type="checkbox" id="cbox" name="from"
+                                                value={{am.pk}}>
+                                            <label for="{{am.pk}}">{{am.hostName}}</label>
+                                        </td>
+                                        <td>
+                                            {{am.mygroup}}
+                                        <td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </div>
+
+            </div>
+        </div>
+        <br>
+
+
+    </form>
+</div>
+{% endblock %}

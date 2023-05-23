@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+{% csrf_token %}
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 fw-bold">作業檢核表查詢</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+        </div>
+     </div>
+
+    <div>
+    <form action="/query_check_report/" method="post" id="query_check_report">
+        <table cellpadding="9">
+            <tr>
+              <td class="form-label fs-5 text-dark">群組：</td>
+              <td>
+                <select class="form-control" name="group" required>
+                  <!--<option value="">請選擇</option>-->
+                  <option value="All">All</option>
+                  {% for mygroup in mygroups %}
+                  <option value="{{ mygroup }}"> {{ mygroup }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td class="form-label fs-5 text-dark">日期：</td>
+              <td><input class="form-control" type="date" name=date required></td>
+            </tr>
+
+            <tr>
+                <td style="color: red;"> {{error}}</td>
+                <td align="left">
+                  {% csrf_token %}
+                  <input class="btn btn-outline-dark" type="submit" name="search" value="查詢">
+                  <button class="btn btn-outline-dark" type="text" name="download" value="下載">下載</button>
+                </td>
+            </tr>
+        </table>
+    </form>
+    </div>
+</main>
+<script type="text/javascript">
+  const date = new Date();
+  let day = String(date.getDate()).padStart(2, '0');
+  let month = String(date.getMonth()+1).padStart(2, '0');
+  let year = date.getFullYear();
+  $('input[name="date"]').val(`${year}-${month}-${day}`);
+
+</script>
+
+{% endblock %}

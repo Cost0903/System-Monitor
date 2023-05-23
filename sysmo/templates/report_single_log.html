@@ -1,0 +1,77 @@
+{% extends 'base.html' %} {% block content %}
+<!--#region rightSide-->
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <!--#region UP-->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    {% if mode == 0 %}
+      <h1 class="h2"> {{ title }}</h1><br>
+    {% else %}
+      <a href="/reports/{{url_interval}}/{{url_hostID}}\?filename={{ filename }}">
+      <!--<a href="reports/?filename={{ filename }}">-->
+        <h1 class="h2"> {{ title }}</h1><br>
+      </a>
+    {% endif %}
+        <div class="btn-toolbar mb-2 mb-md-0">
+        </div>
+    </div>
+    <!--#endregion-->
+    {% comment %}
+    <div class="wraper">
+        <h5 class="h2 fw-bold">主機資訊</h5>
+        <table align="left" cellpadding="6" border="1">
+            <tr>
+                <td>群組:</td>
+                <td> {{ am.mygroup }}</td>
+            </tr>
+            <tr>
+                <td>主機名稱:</td>
+                <td> {{ am.hostName }}</td>
+            </tr>
+            <tr>
+                <td>HostID:</td>
+                <td> {{ am.hostID }}</td>
+            </tr>
+        </table>
+    </div> {% endcomment %}
+
+    <div style=margin-top: 60px; position: relative;>
+        {% autoescape off %} {{ plot_div }} {% endautoescape %}
+    </div>
+
+
+    <!--Table-->
+    <div class="table-responsive">
+        <table class="table table-hover table-sm dashboard">
+            <thead>
+                <tr align="middle">
+                    <td class="fw-bold"  align="left">群組</td>
+                    <td class="fw-bold"  align="left">主機名稱</td>
+                    <td class="fw-bold"  align="left">日誌時間</td>
+                    <!--<td align="left">HostID</td>-->
+                    <td class="fw-bold" >CPU</td>
+                    <td class="fw-bold" >Mem</td>
+                    <td class="fw-bold" >Swap</td>
+                    <!-- <td class="fw-bold" >Disk</td> -->
+                    <td class="fw-bold"  align="left">告警訊息</td>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr align="middle">
+                    <td align="left">{{ log.authenticated_machine.mygroup.name }}</td>
+                    <td align="left">{{ log.authenticated_machine.hostName }}</td>
+                    <td align="left">{{ log.datetime | date:'Y-m-d H:i:s' }}</td>
+                    <!--<td align="left">{{ log.authenticated_machine.hostID }}</td>-->
+                    <td class=dashboard>{{ log.cpuUsage }} %</td>
+                    <td class=dashboard>{{ log.memUsage }} %</td>
+                    <td class=dashboard>{{ log.swapUsage }} %</td>
+                    <!-- <td class=dashboard>{{ log.diskUsage }} %</td> -->
+                    <td align="left" style="color:rgb(255,0,0);">
+                        {{ log.get_event_type | linebreaks }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <!--#endregion-->
+        {% endblock %}

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<!--作業檢核表-->
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>每日系統監控例行作業檢核表</title>
+  <link rel="stylesheet" href="../static/css/boostrapCss/bootstrap.min.css">
+</head>
+
+<style type="text/css">
+  
+
+  .table-gray {
+    background: rgb(236, 239, 241);
+  }
+
+  .header-img {
+    width: 13%;
+    height: 70px;
+    background-repeat: no-repeat;
+    background-color: white;
+    background-image: url("../static/image/logo-4.png");
+    object-fit: cover;
+    margin-right: 10px;
+  }
+
+  body {
+    font-size: 0.65rem;
+    padding: 10%;
+  }
+
+  .title {
+    background: rgb(0, 153, 204);
+    height: 70px;
+    width: 85%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+  }
+</style>
+
+<body>
+  <div class="container">
+    <div class="row justify-content-between">
+      <div class="header-img"></div>
+      <div class="title h3">每日系統監控例行作業檢核表</div>
+    </div>
+  </div>
+  <hr>
+  <div>
+    <h5>
+      日期: {{ date | date:'Y-m-d' }} 
+    </h5>
+    <h5>
+      群組: {{ mygroup }}
+    </h5>
+  </div>
+  <hr>
+  <h2>OFFLINE</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in offline_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <hr>
+    <h2>A:系統狀態檢核</h2>
+
+    <h4>A1: 本日新增警示統計</h4>
+
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr align="center">
+          <td>Critical警示</td>
+          <td>Major警示</td>
+          <td>Waring 警示</td>
+        </tr>
+      </thead>
+      <tr align="center">
+        <td>{{ a1_critical }}</td>
+        <td>{{ a1_major }}</td>
+        <td>{{ a1_warning }}</td>
+      </tr>
+    </table>
+
+    <h4>A2: Critical 警示列表</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in a2_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <br>
+    <hr>
+
+    <h2>B: 系統效能檢核</h2>
+    <h4>B1: CPU 效能警示列表 (Critical)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b1_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <h4>B2: CPU 效能警示列表 (Major)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b2_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <h4>B3: CPU 效能警示列表 (Warning)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b3_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <h4>B4: Memory 效能警示列表 (Critical)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b4_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <h4>B5: Memory 效能警示列表 (Major)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b5_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <h4>B6: Memory 效能警示列表 (Warning)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b6_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    {% comment %} <h4>B7: Swap 效能警示列表 (Critical)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b7_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <h4>B8: Swap 效能警示列表 (Major)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b8_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <h4>B9: Swap 效能警示列表 (Warning)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b9_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table> {% endcomment %}
+
+    <h4>B7: Disk 效能警示列表 (Critical)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b10_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <h4>B8: Disk 效能警示列表 (Major)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b11_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <h4>B9: Disk 效能警示列表 (Warning)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>時間戳記</td>
+          <td>伺服器</td>
+          <td>事件</td>
+          <td>事件描述</td>
+        </tr>
+      </thead>
+      {% for e in b12_events %}
+      <tr>
+        <td>{{ e.datetime | date:'Y-m-d H:i:s' }}</td>
+        <td>{{ e.am }}</td>
+        <td>{{ e.eventtype }}</td>
+        <td>{{ e.msg }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% comment %} <br>
+    <hr>
+
+    <h2>C: 可用性檢核</h2>
+    <h4>C1: 本日 BU 可用性(Availability)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr align="center">
+          <td>BU 可用性(%)</td>
+        </tr>
+      </thead>
+      <tr align="center">
+        <td>{{ c1_availibility }} %</td>
+
+      </tr>
+    </table>
+    <h4>C2: 本日伺服器可用性(Availability)</h4>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td>伺服器</td>
+          <td>BU 可用性(%)</td>
+        </tr>
+      </thead>
+      {% for e in c2_event_list %}
+      <tr>
+        <td>{{ e.am }}</td>
+        <td>{{ e.availibility }} %</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <br>
+    <hr> {% endcomment %}
+
+    <br>
+    <hr>
+    <br>
+    <table class="table mt-3" border="1" cellpadding="8">
+      <thead class="table-gray">
+        <tr>
+          <td style="width:20% ; text-align:center"><b>職稱</b></td>
+          <td style="width:40% ; text-align:center"><b>簽核</b></td>
+          <td style="width:40% ; text-align:center"><b>意見</b></td>
+        </tr>
+      </thead>
+      <tr>
+        <td>經辦</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+      </tr>
+      <tr>
+        <td>主管</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+      </tr>
+    </table>
+
+    <br>
+    <br>
+
+</body>

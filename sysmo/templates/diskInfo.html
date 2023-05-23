@@ -1,0 +1,76 @@
+{% extends 'base.html' %} {% block content %}
+
+<style>
+  .table-set > table > thead > tr > th:nth-child(3) {
+    width: 10%;
+  }
+  .table-set > table > thead > tr > th:nth-child(4) {
+    width: 10%;
+  }
+  .table-set > table > thead > tr > th:nth-child(5) {
+    width: 10%;
+  }
+
+  .table-set > table > thead > tr {
+    text-align: left !important;
+  }
+  .table-set-2 > table > thead > tr {
+    text-align: left !important;
+  }
+</style>
+<script type="text/javascript">
+    function autoRefreshPage() {
+        window.location = window.location.href;
+    }
+    setInterval('autoRefreshPage()', 60000);
+</script>
+<!--#region rightSide-->
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <!--#region UP-->
+  <div
+    class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"
+  >
+    <h1 class="h2">硬碟資訊</h1>
+    <br />
+    <div class="btn-toolbar mb-2 mb-md-0"></div>
+  </div>
+  <!--#endregion-->
+  <div class="wraper">
+    <div>
+      <h4>{{ title }}</h4>
+      <p>最後更新時間: {{ update_time | date:'Y-m-d H:i:s' }}</p>
+    </div>
+
+    <!--時序圖-->
+    <div style="margin-top" 60px; position: relative;> {% autoescape off %}
+    {{plot_div }} {% endautoescape %}
+  	</div>
+  </div>
+
+  <div class="wrap2 d-flex flex-wrap justify-content-center">
+    <div class="row d-flex flex-wrap flex-column w-75">
+      <!--父元素-->
+      <div class="col">
+        <h4>Disk Usage</h4>
+        <div class="table-set-2 text-break">
+          {% autoescape off %} {{ diskTable }} {% endautoescape %}
+        </div>
+      </div>
+      <!--<div class="col ">
+                    <h4>Process (Sort by CPU)</h4>
+                    <div class="table-set text-break">
+                        {% autoescape off %} {{ proc_by_cpu }} {% endautoescape %}
+                    </div>
+                </div>
+                <div class="col ">
+                    <h4>Process (Sort by Mem)</h4>
+                    <div class="table-set text-break">
+                        {% autoescape off %} {{ proc_by_mem }} {% endautoescape %}
+                    </div>
+                </div>-->
+    </div>
+  </div>
+</main>
+<!--#endregion-->
+
+{% endblock %}

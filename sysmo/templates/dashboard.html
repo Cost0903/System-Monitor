@@ -1,0 +1,176 @@
+{% extends 'base.html' %} {% block javascript %}
+{% load static %}
+<!--Auto Refresh-->
+<!--<script src="{% static '/js/ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js' %}"></script>-->
+<script type="text/javascript">
+    function autoRefreshPage() {
+        window.location = window.location.href;
+    }
+    setInterval('autoRefreshPage()', 60000);
+</script>
+{% endblock javascript %} {% block content %}
+<!--#region rightSide-->
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4" onload="JavaScript:AutoRefresh(5000);">
+
+    <!--#region UP-->
+    <div
+        class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 fw-bold">即時監控儀錶板</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+        </div>
+    </div>
+    <!--#endregion-->
+    <form class="select_machine" action="" method="post">
+        <table>
+            <tr>
+                <td><input type="text" name="search" value="" class="lh-lg border border-dark"></td>
+                <td><button class="search-btn btn btn-outline-dark mx-2 fw-bold">搜尋機器{% csrf_token %}</button></td>
+                <td class="fs-5 text-dark">（主機名稱 / MacAddress / 群組）</td>
+            </tr>
+        </table>
+        <br>
+    </form>
+
+    <div>
+        <div class="input-group mb-3 w-50">
+            <button class="btn btn-outline-dark fw-bold" type="button">所有主機：<span>{{ status_cnt.all }} 台</span></button>
+            <button class="btn btn-outline-dark fw-bold" type="button">正常主機：<span>{{ status_cnt.normal }}
+                    台</span></button>
+            <button class="btn btn-outline-dark fw-bold" type="button">告警主機：<span class="text-danger">
+                    {{ status_cnt.error }} 台</span></button>
+        </div>
+    </div>
+
+    <br>
+    <h5 class="h4 fw-bold">告警列表</h5>
+    <div class="wraper">
+        <div class="content">
+            <div class="table-responsive">
+                <table class="table table-sm dashboard table-hover">
+                    <thead class="table-dark lh-lg">
+                        <tr align="middle">
+                            <td align="center" class="fs-5 text-center text-nowrap">連線狀況</td>
+                            <td align="left" class="fs-5 text-start text-nowrap">群組</td>
+                            <td align="left" class="fs-5 text-start text-nowrap">主機名稱</td>
+                            <td align="left" class="fs-5 text-start text-nowrap">保管者</td>
+                            <!--<td align="left">HostID</td>-->
+                            <td class="fs-5 text-start">Cpu</td>
+                            <td class="fs-5 text-start">Mem</td>
+                            <td class="fs-5 text-start">Swap</td>
+                            <!-- <td class="fs-5 text-start">Disk</td> -->
+                            <td align="center" class="fs-5 text-start text-nowrap">最後收到時間</td>
+                            <td align="left" class="fs-5 text-start text-nowrap">告警訊息</td>
+                            <td align="" class="fs-5 text-center text-nowrap">近期資訊</td>
+                            <!-- <td align="left" class="fs-5 text-start  text-nowrap" style="width:7%">儀表板</td> -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for error in errors %}
+                        <tr align="middle">
+                            <td align="center" class=offline>{{ error.get_offline }}</td>
+                            <td align="left">{{ error.authenticated_machine.mygroup.name }}</td>
+                            <td align="left">{{ error.authenticated_machine.hostName }}</td>
+                            <td align="left">{{ error.authenticated_machine.depository_name }}</td>
+                            <!--<td align="left">{{ error.authenticated_machine.hostID }}</td>-->
+                            <td class=dashboard>{{ error.cpuUsage }} %</td>
+                            <td class=dashboard>{{ error.memUsage }} %</td>
+                            <td class=dashboard>{{ error.swapUsage }} %</td>
+                            <!-- <td align="left" class=dashboard>
+								{% for disk,usage in error.diskUsage.items %}
+								{{ disk }} : {{ usage }} %<br>
+								{% endfor %}
+							</td> -->
+                            <td align="center">{{ error.datetime | date:'Y-m-d H:i:s' }}</td>
+                            <td align="left" style="color:rgb(255,0,0);">
+                                {{ error.get_event_msg | linebreaks }}
+                            </td>
+                            <td align="left" class="text-center">
+                                <a href="{% url 'latestlogbyID' error.authenticated_machine.hostID %}">
+                                    <button class="btn btn-outline-dark fw-bold m-1" style="width: 100px;height: 45px;">
+                                        近期日誌
+                                    </button>
+                                </a>
+                                <a href="{% url 'diskInfo' error.authenticated_machine.hostID %}">
+                                    <button class="btn btn-outline-dark fw-bold m-1" style="width: 100px;height: 45px;">
+                                        硬碟資訊
+                                    </button>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+
+
+        <br>
+        <h5 class="h4 fw-bold">機台一覧</h5>
+        <!--Table-->
+        <div class="table-responsive">
+            <table class="table table-sm dashboard table-hover">
+                <thead class="table-dark lh-lg">
+                    <tr align="middle">
+                        <td align="center" class="fs-5 text-center text-nowrap">連線狀況</td>
+                        <td align="left" class="fs-5 text-start text-nowrap">群組</td>
+                        <td align="left" class="fs-5 text-start text-nowrap">主機名稱</td>
+                        <td align="left" class="fs-5 text-start text-nowrap">保管者</td>
+                        <td class="fs-5 text-start text-nowrap">Cpu</td>
+                        <td class="fs-5 text-start text-nowrap">Mem</td>
+                        <td class="fs-5 text-start text-nowrap">Swap</td>
+                        <!-- <td class="fs-5 text-start text-nowrap">Disk</td> -->
+                        <td class="fs-5 text-center text-nowrap">最後更新時間</td>
+                        <td align="left" class="fs-5 text-start text-nowrap">告警訊息</td>
+                        <td align="left" class="fs-5 text-center  text-nowrap">近期資訊</td>
+                        <!-- <td align="left" class="fs-5 text-start  text-nowrap" style="width:7%">儀表板</td> -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr align="middle">
+                        <td align="center" class=offline>{{ log.get_offline }}</td>
+                        <td align="left">{{ log.authenticated_machine.mygroup.name }}</td>
+                        <td align="left">{{ log.authenticated_machine.hostName }}</td>
+                        <td align="left">{{ log.authenticated_machine.depository_name }}</td>
+                        <!--<td align="left">{{ log.authenticated_machine.hostID }}</td>-->
+                        <td class=dashboard>{{ log.cpuUsage }} %</td>
+                        <td class=dashboard>{{ log.memUsage }} %</td>
+                        <td class=dashboard>{{ log.swapUsage }} %</td>
+                        <!--<td class=dashboard>{{ log.diskUsage }} %</td>-->
+                        <!-- <td align="left" class=dashboard>
+						{% for disk,usage in log.diskUsage.items %}
+							{{ disk }} : {{ usage }} %<br>
+							{% endfor %}
+						</td> -->
+                        <td align="center">{{ log.datetime | date:'Y-m-d H:i:s' }}</td>
+                        <td align="left" style="color:rgb(255,0,0);">
+                            {{ log.get_event_msg | linebreaks }}
+                        </td>
+                        <td align="left" class="text-center">
+                            <a href="/latestbymac/{{log.authenticated_machine.hostID}}/">
+                                <button class="btn btn-outline-dark fw-bold m-1" style="width: 100px;height: 45px;">
+                                    近期日誌
+                                </button>
+                            </a>
+                            <a href="/dashboard2/{{log.authenticated_machine.hostID}}/">
+                                <button class="btn btn-outline-dark fw-bold m-1" style="width: 100px;height: 45px;">
+                                    硬碟資訊
+                                </button>
+                            </a>
+                        </td>
+                        <!-- <td align="left">
+                            <a href="/dashboard2/{{log.authenticated_machine.hostID}}/">
+                                <button class="btn btn-outline-dark fw-bold">儀表板</button>
+                            </a>
+                        </td> -->
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+</main>
+</div>
+<!--#endregion-->
+
+{% endblock %}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <p>
+        <div>
+            <table border="1" border-style="solid">
+                <tr>
+                    <td>
+                        電腦名稱:
+                    </td>
+                    <td>
+                        {{ am.hostName }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        事件來源:
+                    </td>
+                    <td>
+                        Sysmo
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        主機群組:
+                    </td>
+                    <td>
+                        {{ am.mygroup }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        告警訊息:
+                    </td>
+                    <td>
+                        {{ message | linebreaks }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        最後更新時間:
+                    </td>
+                    <td>
+                        {{ datetime }}
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <br>
+    </p>
+</body>
+
+</html>
