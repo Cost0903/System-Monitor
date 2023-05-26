@@ -108,7 +108,7 @@ class Authenticated_Machine(models.Model):
     cpuCount = models.IntegerField('CPU數目', null=True, blank=True)
     diskJson = MountPointJsonField('Disk資訊', null=True, blank=True)
 
-    # Fubon Info (ISMS) --------------------------------------------------------------
+    # ISMS Info --------------------------------------------------------------
     asset_ID = models.CharField("資產編號", max_length=20, null=True, blank=True)
     serverIP = models.CharField("IP位址", max_length=30, null=True, blank=True)
     depository_name = models.CharField("保管人",

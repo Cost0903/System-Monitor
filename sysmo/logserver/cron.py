@@ -94,7 +94,7 @@ def create_yearly_report():
     return
 
 # ISMS
-    # Daily Sync to ISMS Server(Fubon only)
+    # Daily Sync to ISMS Server
 def sync_isms():
     isms_file()
     return

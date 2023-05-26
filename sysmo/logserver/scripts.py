@@ -964,7 +964,7 @@ def check_the_policy_fmt(values):
     return values
 
 
-# 2023/01/11 fubon new requirement
+# 2023/01/11 new requirement
 def check_policy_new(usage, policy: dict, mode, device, diskJson=None):
     logging.debug("Enter Function (check_policy_new)"
     # swap default policy : 60~70, 70~80, 80~90, >90
@@ -1561,7 +1561,7 @@ def pdf_daily_check_report(group: str, **custom_date):
         "(pdf_daily_check_report) Loading html template: pdf_check_report.html"
     )
     template = env.get_template("pdf_check_report.html")
-    image = settings.STATIC_DIR + '/image/Fubon.svg'
+    image = settings.STATIC_DIR + '/image/logo.svg'
     tmpl_var = {
         'date': mydate.strftime("%Y-%m-%d"),
         'mygroup': group,
@@ -2019,7 +2019,7 @@ def pdf_daily_check_report_all(group: str, **custom_date):
         "(pdf_daily_check_report) Loading html template: pdf_check_report.html"
     )
     template = env.get_template("pdf_check_report.html")
-    image = settings.STATIC_DIR + '/image/Fubon.svg'
+    image = settings.STATIC_DIR + '/image/logo.svg'
     tmpl_var = {
         'date':
         mydate.strftime("%Y-%m-%d"),
