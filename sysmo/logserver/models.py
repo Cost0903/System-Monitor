@@ -3,7 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from sysmo.settings import DEFAULT_INTERVAL, DEFAULT_WARNING, DEFAULT_MAJOR, DEFAULT_CRITICAL, SWAP_WARNING, SWAP_MAJOR70, SWAP_MAJOR80, SWAP_CRITICAL
+from sysmo.settings import DEFAULT_INTERVAL, DEFAULT_WARNING, DEFAULT_MAJOR, DEFAULT_CRITICAL
 import logging
 import pandas as pd
 
@@ -17,10 +17,10 @@ def cpumem_default_json():
         0, DEFAULT_WARNING, DEFAULT_MAJOR, DEFAULT_CRITICAL)
 
 
-def swap_default_json():
-    return str(
-        "{'Pass': %s, 'Warning': %s, 'Major': %s, 'Major80': %s, 'Critical': %s}"
-    ) % (0, SWAP_WARNING, SWAP_MAJOR70, SWAP_MAJOR80, SWAP_CRITICAL)
+# def swap_default_json():
+#     return str(
+#         "{'Pass': %s, 'Warning': %s, 'Major': %s, 'Major80': %s, 'Critical': %s}"
+#     ) % (0, SWAP_WARNING, SWAP_MAJOR70, SWAP_MAJOR80, SWAP_CRITICAL)
 
 
 # 2022/03/21 modified the capacity format(cancel any "B" char)

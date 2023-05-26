@@ -15,10 +15,6 @@ from pathlib import Path
 import configparser
 import logging
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    datefmt='[%d/%b/%Y %H:%M:%S]')
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = "/var/log/sysmo/"
@@ -43,6 +39,7 @@ MY_USER: str = dbConfigParser.get('mysql-config', 'USER')
 MY_PASSWORD: str = dbConfigParser.get('mysql-config', 'PASSWORD')
 
 # Server 設定參數
+DEBUG_MODE: bool = apConfigParser.get('MODE', 'DEBUG_MODE')
 # Log 相關參數
 DEFAULT_INTERVAL: int = int(apConfigParser.get('logrotate', 'INTERVAL'))
 DEFAULT_WARNING: int = int(
@@ -51,8 +48,7 @@ DEFAULT_MAJOR: int = int(apConfigParser.get('DEFAULT_POLICY', 'DEFAULT_MAJOR'))
 DEFAULT_CRITICAL: int = int(
     apConfigParser.get('DEFAULT_POLICY', 'DEFAULT_CRITICAL'))
 SWAP_WARNING: int = int(apConfigParser.get('SWAP_POLICY', 'SWAP_WARNING'))
-SWAP_MAJOR70: int = int(apConfigParser.get('SWAP_POLICY', 'SWAP_MAJOR70'))
-SWAP_MAJOR80: int = int(apConfigParser.get('SWAP_POLICY', 'SWAP_MAJOR80'))
+SWAP_MAJOR: int = int(apConfigParser.get('SWAP_POLICY', 'SWAP_MAJOR'))
 SWAP_CRITICAL: int = int(apConfigParser.get('SWAP_POLICY', 'SWAP_CRITICAL'))
 DEFAULT_OFFLINE_TIME: int = int(
     apConfigParser.get('DEFAULT_POLICY', 'DEFAULT_OFFLINE_TIME'))
@@ -68,6 +64,11 @@ MAIL_PORT: int = int(apConfigParser.get('mail-config', 'PORT'))
 MAIL_USE_TLS: str = apConfigParser.get('mail-config', 'USE_TLS')
 MAIL_USER: str = apConfigParser.get('mail-config', 'USER')
 MAIL_PASSWORD: str = apConfigParser.get('mail-config', 'PASSWORD')
+
+logging.basicConfig(
+    level=logging.INFO if DEBUG_MODE is False else logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='[%d/%b/%Y %H:%M:%S]')
 
 LIST_PER_PAGE = 200
 # ------------------------------------------------------------------

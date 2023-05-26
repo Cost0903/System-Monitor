@@ -17,24 +17,16 @@ def one_minute_refresh():
 
 # Reports ------------------
 def send_daily_report():
-    logging.info("(send_daily_report) Enter")
+    logging.debug("Enter function (send_daily_report)")
     ams = Authenticated_Machine.objects.all()
     daily_time = (datetime.now() - timedelta(days=1)).astimezone().strftime("%Y%m%d")
-    # for am in ams:
-    #     group = MyGroup.objects.filter(name=am.mygroup)
-    #     filename = "%s-DailyReport-%s" % (daily_time, str(am))
-    #     send_report(filename, group, 1)
-
     groups = MyGroup.objects.all()
-    # for group in groups:
-    #     filename = "%s-CheckReport-%s" % (daily_time, str(group))
-    #     send_report(filename, group, 100)
     filename = "銀行Linux每日作業檢核表-%s" % (daily_time)
     send_report(filename, "All", 100)
     return
 
 def send_weekly_report():
-    logging.info("(send_weekly_report) Enter")
+    logging.debug("Enter function (send_weekly_report)")
     ams = Authenticated_Machine.objects.all()
     for am in ams:
         start, end, title = get_time_threshold(7,am)
@@ -44,7 +36,7 @@ def send_weekly_report():
     return
 
 def send_monthly_report():
-    logging.info("(send_monthly_report) Enter")
+    logging.debug("Enter function (send_monthly_report)")
     ams = Authenticated_Machine.objects.all()
     monthly_time = (datetime.now() - timedelta(days=datetime.now().day)).astimezone().strftime("%Y-%m")
     for am in ams:
@@ -54,7 +46,7 @@ def send_monthly_report():
     return
 
 def send_yearly_report():
-    logging.info("(send_monthly_report) Enter")
+    logging.debug("Enter function (send_monthly_report)")
     ams = Authenticated_Machine.objects.all()
     last_year = datetime.now().year - 1
     year_time = (datetime.now() - timedelta(days=datetime.now().day)).astimezone().strftime("%Y-%m")

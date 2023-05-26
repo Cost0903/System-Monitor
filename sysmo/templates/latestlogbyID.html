@@ -1,38 +1,19 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
+<script type="text/javascript">
+    function autoRefreshPage() {
+        window.location = window.location.href;
+    }
+    setInterval('autoRefreshPage()', 60000);
+</script>
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
 
-  <!--#region UP-->
   <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">伺服器日誌</h1>
   </div>
-  <!--#endregion-->
-
-  <!--Table-->
-
-
-
-  <!--Table-->
     <div class="wraper">
       <div class="content">
-        <h5>主機資訊</h4>
-          {% comment %} <table align="left" cellpadding="6" border="1">
-            <tr>
-              <td>群組:</td>
-              <td> {{ am.mygroup.name }}</td>
-            </tr>
-            <tr>
-              <td>主機名稱:</td>
-              <td> {{ am.name }}</td>
-            </tr>
-            <tr>
-              <td>MAC Address:</td>
-              <td> {{ am.mac_address }}</td>
-            </tr>
-          </table> {% endcomment %}
-        <hr>
         <div style=margin-top: 60px; position: relative;>
         {% autoescape off %}
         {{ plot_div }}
@@ -45,7 +26,6 @@
               <td>Cpu</td>
               <td>Mem</td>
               <td>Swap</td>
-              <!-- <td>Disk</td> -->
               <td style="color:rgb(255,0,0);">告警訊息</td>
             </tr>
           </thead>
@@ -56,14 +36,8 @@
               <td class="dashboard">{{ log.cpuUsage }} %</td>
               <td class="dashboard">{{ log.memUsage }} %</td>
               <td class="dashboard">{{ log.swapUsage }} %</td>
-			  <!--<td class="dashboard">{{ log.diskUsage }} %</td>-->
-			  <!-- <td align="left" class=dashboard>
-				  {% for disk,usage in error.diskUsage.items %}
-				  {{ disk }} : {{ usage }} %<br>
-				  {% endfor %}
-		      </td>-->
               <td align="left" style="color:rgb(255,0,0);">{{ log.get_event_msg | linebreaks }}</td>
-            </tr> 
+            </tr>
             {% endfor %}
           </tbody>
         </table>

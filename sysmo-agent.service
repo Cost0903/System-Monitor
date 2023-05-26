@@ -1,0 +1,19 @@
+[Unit]
+Description=System Monitor Sevice
+
+Wants=network-pre.target
+After=network.service
+
+[Service]
+WorkingDirectory=/opt/sysmo-agent
+ExecStart=/opt/sysmo-agent/sysmo-agent
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=sysmo-agent
+# supress to log debug and error output also to /var/log/messages
+
+[Install]
+WantedBy=multi-user.target
+

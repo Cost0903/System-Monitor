@@ -1,6 +1,8 @@
 import pandas as pd
 import json
 import csv
+import logging
+import zoneinfo
 from weasyprint import HTML, CSS
 from jinja2 import Environment, FileSystemLoader
 from django.contrib import messages
@@ -18,8 +20,7 @@ from django.utils.timezone import make_aware
 from plotly.offline import plot
 # from pprint import pprint
 from django.views.decorators.csrf import csrf_exempt
-import logging
-import zoneinfo
+from memory_profiler import profile
 
 # logging setting
 logging.basicConfig(level=logging.INFO,
@@ -31,14 +32,15 @@ logging.basicConfig(level=logging.INFO,
 # Only show the CPU, Memory, Swap AND Waring column
 # The Disk Information is in the DiskTable(硬碟資訊)
 @login_required
+# @profile
 def latestlogbyID(request, url_hostID):
-    # logging.info("Enter function (latestbymac)")
+    logging.debug("Enter function (latestlogbyID)")
+    # 取6小時內的資料
     time_threshold = datetime.now().astimezone() - timedelta(hours=6)
-    # logging.info(f"time_threshold: {time_threshold}")
 
     am = Authenticated_Machine.objects.get(hostID=url_hostID)
 
-    # Get logs from LogsEden and LogsSurviver
+    # Get logs from LogsEden and LogsSurviver 共計 100 筆
     logs = LogsEden.objects.defer('procByCpu', 'procByMem', 'event').filter(
         authenticated_machine=am, datetime__gt=time_threshold).union(
             LogsSurviver.objects.defer(
@@ -51,25 +53,20 @@ def latestlogbyID(request, url_hostID):
         return render(request, "latestlogbyID.html", {'am': am, 'logs': logs})
 
     for log in logs.iterator():
-        # logging.info(f"memUsage: {type(log.memJson)}")
         usageVec = {
             'cpu_usage':
             log.cpuUsage,
             'memory_usage':
             log.memJson,
-            # log.memUsage(),
             'swap_usage':
             log.swapMemJson,
             'datetime':
             log.datetime.astimezone(timezone(timedelta(hours=8),
                                              "Asia/Taipei")),
         }
-        # logging.debug(
-        #     f"log.datetime : {log.datetime.astimezone(timezone(timedelta(hours=8),'Asia/Taipei'))}")
         usageList.append(usageVec)
 
     df = pd.DataFrame.from_records(usageList)
-    # logging.info(f"df info: {df}")
 
     fig = plot_log_line_chart(df, am)
     plot_div = plot(fig,
@@ -84,329 +81,234 @@ def latestlogbyID(request, url_hostID):
     })
 
 
-# 儲存的報表----------------------------------------------------------------------
-# @login_required
-# @profile
-# def select_machine(request, nextpage,
-#                    url_interval):  # check this, maybe need remove
-#     # logging.info("Enter function (select_machine)")
-
-#     if request.method == "GET":
-#         ams = Authenticated_Machine.objects.all().order_by("mygroup")
-
-#     if request.method == "POST":
-#         search = request.POST.get('search')
-
-#         if search == "" or search == ' ':
-#             ams = Authenticated_Machine.objects.all().order_by("mygroup")
-
-#         else:
-#             ams = Authenticated_Machine.objects.filter(
-#                 hostName__icontains=search).union(
-#                     Authenticated_Machine.objects.filter(
-#                         hostID__icontains=search),
-#                     Authenticated_Machine.objects.filter(
-#                         mygroup__name__icontains=search).order_by("mygroup"))
-
-#     if nextpage == "saved-report":
-#         interval = int(url_interval)
-#         if interval == 1:
-#             title = "%s 日報" % ((datetime.now().astimezone() -
-#                                 timedelta(days=1)).strftime("%Y-%m-%d"))
-#         elif interval == 7:
-#             title = "%d年 第 %d 週週報" % (
-#                 (datetime.now() - timedelta(weeks=1)).astimezone().year,
-#                 (datetime.now() -
-#                  timedelta(weeks=1)).astimezone().isocalendar()[1])
-#         elif interval == 30:
-#             title = "%d-%d 月月報" % (
-#                 (datetime.now() -
-#                  timedelta(days=datetime.now().day)).astimezone().year,
-#                 (datetime.now() -
-#                  timedelta(days=datetime.now().day)).astimezone().month)
-#         else:
-#             title = "ERROR"
-#     elif nextpage == "set-query":
-#         title = "請選擇要查詢的主機"
-
-#     return render(request, "select_machine.html", {
-#         'ams': ams,
-#         'interval': url_interval,
-#         'title': title,
-#         'nextpage': nextpage
-#     })
-
-
-def reports(request, url_interval,
-            url_hostID):  # check this, maybe need remove
-    logging.info("Enter Function : (get_report)")
-    data = str(request.GET.get("filename"))
-    logging.info(data)
+def reports(request, url_interval, url_hostID):
+    logging.debug("Enter Function (reports)")
+    filename = str(request.GET.get("filename"))
     am = Authenticated_Machine.objects.get(hostID=url_hostID)
-    logging.info("url_interval : %s" % url_interval)
     try:
-        file = open(settings.REPORT_DIR + '/' + data, 'rb')
+        file = open(settings.REPORT_DIR + '/' + filename, 'rb')
     except:
-        logging.info("Enter to except")
-        # env = Environment(loader=FileSystemLoader(settings.TEMPLATE_DIR))
         pdf_report_generator_by_am(am, int(url_interval))
-        file = open(settings.REPORT_DIR + '/' + data, 'rb')
-        # return HttpResponseNotFound("hello")
-    # file = open('reports/test.pdf', 'rb')
+        file = open(settings.REPORT_DIR + '/' + filename, 'rb')
     response = FileResponse(file)
     response['Content-Type'] = 'application/octet-stream'
-    response['Content-Disposition'] = 'attachment;filename=' + data
+    response['Content-Disposition'] = 'attachment;filename=' + filename
     return response
 
 
-'''
-def generate_pdf_report(int_url_interval:int, am):
-    start, end, _ = get_time_threshold(int_url_interval, am)
+# # 儲存的報表 ---------------------------------------------------------------------
+# @login_required
+# # @profile
+# def saved_report(request, url_hostID, url_interval):
+#     logging.debug("Enter function (saved-report)")
+#     int_url_interval = int(url_interval)
+#     am = Authenticated_Machine.objects.get(hostID=url_hostID)
+#     start, end, title = get_time_threshold(int_url_interval, am)\
 
-    df = pd.DataFrame.from_records(Log_Warehouse.objects.filter(
-        authenticated_machine = am,
-        datetime__lt=end,
-        datetime__gte=start
-        ).order_by('datetime').values())
-    df['datetime'] = df['datetime'].dt.strftime("%Y-%m-%d %H時")
-    del df["id"]
-    del df["authenticated_machine_id"]
-    del df["log_cnt"]
-    del df["err_msg"]
-    cols = df.columns.tolist()
-    cols = cols[-1:] + cols[:-1]
-    df = df[cols]
+#     logs = None
 
-    mypath = os.getcwd() + "/tmp_report.csv"
-    df.to_csv(mypath)
+#     # 日報表
+#     if (int_url_interval == 1):
+#         logs = get_logs_by_hour(am, start, end)
 
-    logging.info('Generate CSV report')
+#     # 週/月報表 改成一天一筆資料
+#     elif (int_url_interval == 7 or int_url_interval == 30):
+#         logs = get_logs_by_date(am, start, end)
 
-    return
-'''
+#     try:
+#         logs[0]
+#     except Exception:
+#         title = "此段時段" + str(am) + "無資料"
+#         return render(request, "report_by_hour.html", {
+#             'logs': logs,
+#             'title': title,
+#             'am': am
+#         })
 
+#     usageList = []
+#     if logs is None:
+#         logging.debug("(saved-report) No logs.")
+#         return render(request, 'report_by_hour.html', {'am': am, 'logs': logs})
 
-# 儲存的報表 ---------------------------------------------------------------------
-@login_required
-# @profile
-def saved_report(request, url_hostID, url_interval):
-    logging.info("Enter function (saved-report)")
-    int_url_interval = int(url_interval)
-    am = Authenticated_Machine.objects.get(hostID=url_hostID)
-    start, end, title = get_time_threshold(int_url_interval, am)
-    # logging.info("(saved report) time threshold start:%s, end:%s, am:%s"
-    #              % (start, end, am))
+#     for log in logs:
+#         usageDict = {
+#             'cpu_usage': log.avg_cpu_usage,
+#             'memory_usage': log.avg_memory_usage,
+#             'swap_usage': log.avg_swap_usage,
+#             'datetime': log.datetime
+#         }
+#         usageList.append(usageDict)
+#     # print(usageList)
 
-    logs = None
+#     df = pd.DataFrame.from_records(usageList)
+#     df['datetime'] = df['datetime'].dt.tz_convert(get_localzone())
 
-    # 日報表
-    if (int_url_interval == 1):
-        logs = get_logs_by_hour(am, start, end)
+#     # plot
+#     fig = plot_log_line_chart(df, am)
+#     plot_div = plot(fig,
+#                     output_type='div',
+#                     include_plotlyjs=True,
+#                     show_link=False)
 
-    # 週/月報表 改成一天一筆資料
-    elif (int_url_interval == 7 or int_url_interval == 30):
-        logs = get_logs_by_date(am, start, end)
-
-    # logging.info("(saved-report) %d" % (len(logs)))
-
-    try:
-        logs[0]
-    except Exception:
-        title = "此段時段" + str(am) + "無資料"
-        return render(request, "report_by_hour.html", {
-            'logs': logs,
-            'title': title,
-            'am': am
-        })
-
-    usageList = []
-    if logs is None:
-        logging.info("(saved-report) No logs.")
-        return render(request, 'report_by_hour.html', {'am': am, 'logs': logs})
-
-    for log in logs:
-        usageDict = {
-            'cpu_usage': log.avg_cpu_usage,
-            'memory_usage': log.avg_memory_usage,
-            'swap_usage': log.avg_swap_usage,
-            'datetime': log.datetime
-        }
-        usageList.append(usageDict)
-    # print(usageList)
-
-    df = pd.DataFrame.from_records(usageList)
-    df['datetime'] = df['datetime'].dt.tz_convert(get_localzone())
-
-    # plot
-    fig = plot_log_line_chart(df, am)
-    plot_div = plot(fig,
-                    output_type='div',
-                    include_plotlyjs=True,
-                    show_link=False)
-
-    if (int_url_interval == 1):
-        filename = "SYSMO-%s-%s-Performance.pdf" % (str(am.hostName),
-                                                    (start).strftime("%Y%m%d"))
-        return render(
-            request, "report_by_hour.html", {
-                'logs': logs,
-                'title': title,
-                'am': am,
-                'plot_div': plot_div,
-                'filename': filename,
-                'url_interval': url_interval,
-                'url_hostID': url_hostID
-            })
-    elif (int_url_interval == 7 or int_url_interval == 30):
-        if (int_url_interval == 7):
-            filename = "SYSMO-%s-%s-%s-Performance.pdf" % (str(
-                am.hostName), start.strftime("%Y%m%d"), end.strftime("%Y%m%d"))
-        else:
-            filename = "SYSMO-%s-%s-Performance.pdf" % (str(
-                am.hostName), start.strftime("%Y%m"))
-        return render(
-            request, "report_by_date.html", {
-                'logs': logs,
-                'title': title,
-                'am': am,
-                'plot_div': plot_div,
-                'filename': filename,
-                'url_interval': url_interval,
-                'url_hostID': url_hostID
-            })
-
-
-# def check_filepath():
-#     if os.path.isfile()
+#     if (int_url_interval == 1):
+#         filename = "SYSMO-%s-%s-Performance.pdf" % (str(am.hostName),
+#                                                     (start).strftime("%Y%m%d"))
+#         return render(
+#             request, "report_by_hour.html", {
+#                 'logs': logs,
+#                 'title': title,
+#                 'am': am,
+#                 'plot_div': plot_div,
+#                 'filename': filename,
+#                 'url_interval': url_interval,
+#                 'url_hostID': url_hostID
+#             })
+#     elif (int_url_interval == 7 or int_url_interval == 30):
+#         if (int_url_interval == 7):
+#             filename = "SYSMO-%s-%s-%s-Performance.pdf" % (str(
+#                 am.hostName), start.strftime("%Y%m%d"), end.strftime("%Y%m%d"))
+#         else:
+#             filename = "SYSMO-%s-%s-Performance.pdf" % (str(
+#                 am.hostName), start.strftime("%Y%m"))
+#         return render(
+#             request, "report_by_date.html", {
+#                 'logs': logs,
+#                 'title': title,
+#                 'am': am,
+#                 'plot_div': plot_div,
+#                 'filename': filename,
+#                 'url_interval': url_interval,
+#                 'url_hostID': url_hostID
+#             })
 
 
 # 自訂報表 ----------------------------------------------------------------------
-@login_required
-# @profile
-def custom_query_report(request):
-    # logging.info("Enter function (custom_query_report)")
-    if (request.method == "POST"):
+# @login_required
+# # @profile
+# def custom_query_report(request):
+#     logging.debug("Enter function (custom_query_report)")
+#     if (request.method == "POST"):
 
-        str_hostID = request.POST.get("hostID")
-        str_start_date = request.POST.get("start_date")
-        str_end_date = request.POST.get("end_date")
-        str_view = request.POST.get("view")
+#         str_hostID = request.POST.get("hostID")
+#         str_start_date = request.POST.get("start_date")
+#         str_end_date = request.POST.get("end_date")
+#         str_view = request.POST.get("view")
 
-        try:
-            am = Authenticated_Machine.objects.get(hostID=str_hostID)
-        except Exception:
-            error = "輸入錯誤：找不到輸入的 hostID"
-            messages.error(request, error)
-            return render(request, "set_query.html", {})
+#         try:
+#             am = Authenticated_Machine.objects.get(hostID=str_hostID)
+#         except Exception:
+#             error = "輸入錯誤：找不到輸入的 hostID"
+#             messages.error(request, error)
+#             return render(request, "set_query.html", {})
 
-        start_date = make_aware(datetime.strptime(str_start_date, "%Y-%m-%d"))
-        end_date = make_aware(datetime.strptime(str_end_date, "%Y-%m-%d"))
+#         start_date = make_aware(datetime.strptime(str_start_date, "%Y-%m-%d"))
+#         end_date = make_aware(datetime.strptime(str_end_date, "%Y-%m-%d"))
 
-        # Error Check
-        if (start_date > end_date):
-            error = "輸入錯誤：結束日期不能先於起始日期"
-            messages.error(request, error)
-            return render(request, "set_query.html", {'my_hostID': str_hostID})
+#         # Error Check
+#         if (start_date > end_date):
+#             error = "輸入錯誤：結束日期不能先於起始日期"
+#             messages.error(request, error)
+#             return render(request, "set_query.html", {'my_hostID': str_hostID})
 
-        if (start_date > make_aware(datetime.now())
-                or end_date > make_aware(datetime.now())):
-            error = "輸入錯誤：起始日期不能先於現在日期"
-            messages.error(request, error)
-            return render(request, "set_query.html", {'my_hostID': str_hostID})
+#         if (start_date > make_aware(datetime.now())
+#                 or end_date > make_aware(datetime.now())):
+#             error = "輸入錯誤：起始日期不能先於現在日期"
+#             messages.error(request, error)
+#             return render(request, "set_query.html", {'my_hostID': str_hostID})
 
-        start_datetime = make_aware(datetime.combine(start_date, time(0, 0)))
-        end_datetime = make_aware(datetime.combine(end_date, time(23, 59)))
+#         start_datetime = make_aware(datetime.combine(start_date, time(0, 0)))
+#         end_datetime = make_aware(datetime.combine(end_date, time(23, 59)))
 
-        title = "自訂搜尋：%s~%s" % (str_start_date, str_end_date)
+#         title = "自訂搜尋：%s~%s" % (str_start_date, str_end_date)
 
-        if str_view == "all":
-            logs = get_logs_all(am, start_datetime, end_datetime)
-        elif str_view == "hour":
-            logs = get_logs_by_hour(am, start_datetime, end_datetime)
-        elif str_view == "day":
-            logs = get_logs_by_date(am, start_datetime, end_datetime)
-        else:
-            error = 'Unexpected error!'
-            messages.error(request, error)
-            return render(request, "set_query.html", {})
+#         if str_view == "all":
+#             logs = get_logs_all(am, start_datetime, end_datetime)
+#         elif str_view == "hour":
+#             logs = get_logs_by_hour(am, start_datetime, end_datetime)
+#         elif str_view == "day":
+#             logs = get_logs_by_date(am, start_datetime, end_datetime)
+#         else:
+#             error = 'Unexpected error!'
+#             messages.error(request, error)
+#             return render(request, "set_query.html", {})
 
-        if logs is None:
-            title = "時間內找不到日誌檔"
-            messages.error(request, title)
-            return render(request, 'set_query.html', {})
+#         if logs is None:
+#             title = "時間內找不到日誌檔"
+#             messages.error(request, title)
+#             return render(request, 'set_query.html', {})
 
-        usageList = []
-        if str_view == "all":
-            for log in logs.iterator():
-                usageDict = {
-                    'cpu_usage': log.cpuUsage,
-                    'memory_usage': log.memUsage(),
-                    'swap_usage': log.swapUsage(),
-                    'datetime': log.datetime
-                }
-                usageList.append(usageDict)
-        elif str_view == "hour" or str_view == "day":
-            for log in logs:
-                usageDict = {
-                    'cpu_usage': log.avg_cpu_usage,
-                    'memory_usage': log.avg_memory_usage,
-                    'swap_usage': log.avg_swap_usage,
-                    'datetime': log.datetime
-                }
-                usageList.append(usageDict)
+#         usageList = []
+#         if str_view == "all":
+#             for log in logs.iterator():
+#                 usageDict = {
+#                     'cpu_usage': log.cpuUsage,
+#                     'memory_usage': log.memUsage(),
+#                     'swap_usage': log.swapUsage(),
+#                     'datetime': log.datetime
+#                 }
+#                 usageList.append(usageDict)
+#         elif str_view == "hour" or str_view == "day":
+#             for log in logs:
+#                 usageDict = {
+#                     'cpu_usage': log.avg_cpu_usage,
+#                     'memory_usage': log.avg_memory_usage,
+#                     'swap_usage': log.avg_swap_usage,
+#                     'datetime': log.datetime
+#                 }
+#                 usageList.append(usageDict)
 
-        logging.info(usageList)
-        df = pd.DataFrame.from_records(usageList)
-        df['datetime'] = df['datetime'].dt.tz_convert(get_localzone())
+#         logging.info(usageList)
+#         df = pd.DataFrame.from_records(usageList)
+#         df['datetime'] = df['datetime'].dt.tz_convert(get_localzone())
 
-        # plot
-        fig = plot_log_line_chart(df, am)
-        plot_div = plot(fig,
-                        output_type='div',
-                        include_plotlyjs=True,
-                        show_link=False)
-    if str_view == "all":
-        return render(
-            request, "report_single_log.html", {
-                'logs': logs,
-                'title': title,
-                'am': am,
-                'plot_div': plot_div,
-                'mode': 0
-            })
-    elif str_view == "hour":
-        return render(
-            request, "report_by_hour.html", {
-                'logs': logs,
-                'title': title,
-                'am': am,
-                'plot_div': plot_div,
-                'mode': 0
-            })
-    elif str_view == "day":
-        return render(
-            request, "report_by_date.html", {
-                'logs': logs,
-                'title': title,
-                'am': am,
-                'plot_div': plot_div,
-                'mode': 0
-            })
+#         # plot
+#         fig = plot_log_line_chart(df, am)
+#         plot_div = plot(fig,
+#                         output_type='div',
+#                         include_plotlyjs=True,
+#                         show_link=False)
+#     if str_view == "all":
+#         return render(
+#             request, "report_single_log.html", {
+#                 'logs': logs,
+#                 'title': title,
+#                 'am': am,
+#                 'plot_div': plot_div,
+#                 'mode': 0
+#             })
+#     elif str_view == "hour":
+#         return render(
+#             request, "report_by_hour.html", {
+#                 'logs': logs,
+#                 'title': title,
+#                 'am': am,
+#                 'plot_div': plot_div,
+#                 'mode': 0
+#             })
+#     elif str_view == "day":
+#         return render(
+#             request, "report_by_date.html", {
+#                 'logs': logs,
+#                 'title': title,
+#                 'am': am,
+#                 'plot_div': plot_div,
+#                 'mode': 0
+#             })
 
 
-@login_required
-# @profile
-def set_query_for_self_defined_report(request, url_hostID, url_interval):
-    # logging.info("Enter function (set_quert_for_self_defined_report)")
-    if request.method == "GET":
-        return render(request, "set_query.html", {'my_hostID': url_hostID})
+# @login_required
+# # @profile
+# def set_query_for_self_defined_report(request, url_hostID, url_interval):
+#     # logging.info("Enter function (set_quert_for_self_defined_report)")
+#     if request.method == "GET":
+#         return render(request, "set_query.html", {'my_hostID': url_hostID})
 
 
 # 每日點檢表 --------------------------------------------------------------------
 @login_required
 # @profile
 def query_check_report(request):
-    # logging.info("Enter function (query_check_report)")
+    logging.debug("Enter function (query_check_report)")
     if (request.method == "GET"):
         mygroups = MyGroup.objects.all()
         return render(request, "query_check_report.html",
@@ -419,14 +321,10 @@ def query_check_report(request):
         if str_group == "All":
             group = "All"
             filename = "銀行Linux每日作業檢核表-%s.pdf" % (r_date_str.replace("-", ""))
-            # filename = "%s-CheckReport.pdf" % (r_date_str.replace(
-            #     "-", ""))
         else:
             group = MyGroup.objects.get(name=str_group)
             filename = "銀行Linux每日作業檢核表-%s-%s.pdf" % (r_date_str.replace(
                 "-", ""), str_group)
-
-        # logging.info("query_check_report : filename : !%s!" % (filename))
 
         mydate = make_aware(datetime.strptime(r_date_str, "%Y-%m-%d"))
 
@@ -467,28 +365,10 @@ def query_check_report(request):
         b12_events = []
         offline_events = []
 
-        # class offline_event:  # offline object
-
-        #     def __init__(self, am, datetime, state):
-        #         self.am = am
-        #         self.datetime = datetime
-        #         self.state = state
-
-        # def get_duration(offline_events):
-        #     start_date = ""
-        #     end_date = ""
-        #     for offline_event in offline_events:
-        #         offline = 1
-        #     return ""
-
         pattern_text = \
             r'OFFLINE for (?P<offline_hour>\d+) hrs (?P<offline_min>\d+) mins'
 
         if request.POST.get('download'):
-            # logging.info(settings.REPORT_DIR + '/' + str(filename))
-            # logging.info(filename)
-            # logging.info(smart_str(filename))
-            # logging.info()
             try:
                 file = open(settings.REPORT_DIR + '/' + str(filename),
                             'rb')  # + filename
@@ -504,12 +384,8 @@ def query_check_report(request):
             return response
         else:
             if group == "All":
-                # logging.info("ALL")
                 ams = Authenticated_Machine.objects.all()
             else:
-                # logging.info(group)
-                # logging.info(type(group))
-                # logging.info(str(group))
                 ams = Authenticated_Machine.objects.filter(
                     mygroup__name=str_group)
 
@@ -533,19 +409,11 @@ def query_check_report(request):
                 lastlog = []
                 logging.info("am : %s" % am.hostName)
                 for log in logs.iterator():
-                    # logging.info("lastlog : %s" % lastlog)
-                    # logging.info("lastlog before : %s" % lastlog)
                     err_list, err_dict, lastlog = log.merge_event_type(lastlog)
-                    # logging.info("lastlog after : %s" % lastlog)
-                    # logging.info(log.datetime)
-                    # lastlog = []
 
                     if err_list:
-                        # for event in log.get_event():
-                        #     lastlog.append(event.get("eventtype"))
                         for ev in err_list:
                             # A1 ~ A2
-                            # logging.info("log.get_event() : {}".format(ev))
                             if "CRITICAL" in ev:
                                 a1_critical += 1
                                 a2_events.append(
@@ -682,26 +550,6 @@ def query_check_report(request):
                                     offline_events.append(offline_event)
                                     a1_critical += 1
 
-                                # match = re.search(pattern_text, err_dict.get(ev))
-                                # c1_offline_hour += int(match.group(1))
-                                # c1_offline_min += int(match.group(2))
-                                # c2_offline_hour += int(match.group(1))
-                                # c2_offline_min += int(match.group(2))
-
-            #     c2_offline_rate = \
-            #         (c2_offline_hour * 60 + c2_offline_min) \
-            #         / (c2_avail_hour * 60)
-
-            #     c2_availibility = round(1 - c2_offline_rate, 2)
-            #     c2_event_list.append(c2_event(am, c2_availibility))
-            #     c2_offline_hour, c2_offline_min = 0, 0
-            # # for b3 in b3_events:
-            # #     logging.info("b3_event %s" % b3.datetime)
-
-            # c1_offline_rate = (c1_offline_hour * 60 + c1_offline_min) \
-            #     / (c1_all_avail_hour * 60)
-            # c1_availibility = round(1 - c1_offline_rate, 2) * 100
-
             return render(
                 request,
                 "daily_check_report.html",
@@ -748,10 +596,6 @@ def query_check_report(request):
                     sorted(b12_events, key=lambda s: s.datetime),
                     'offline_events':
                     sorted(offline_events, key=lambda s: s.datetime),
-
-                    # C
-                    # 'c1_availibility': c1_availibility,
-                    # 'c2_event_list': c2_event_list,
                 })
 
 
@@ -759,7 +603,7 @@ def query_check_report(request):
 @login_required
 # @profile
 def diskInfo(request, url_hostID):
-    logging.info("Enter function (diskInfo)")
+    logging.debug("Enter function (diskInfo)")
 
     if request.method == "GET":
         try:
@@ -799,7 +643,6 @@ def diskInfo(request, url_hostID):
             usageList.append(usageVec)
 
         df = pd.DataFrame.from_records(usageList)
-        # df['datetime'] = df['datetime'].dt.tz_convert(get_localzone())
         fig = plot_log_line_chart(df, am)
         plot_div = plot(fig,
                         output_type='div',
@@ -810,11 +653,6 @@ def diskInfo(request, url_hostID):
             log = LogsEden.objects.filter(authenticated_machine=am).first()
             diskTable = am.get_disk_table().to_html(
                 classes='table table-striped')
-            # logging.info("disk Table : %s" % (diskTable))
-            # procCpuTable = log.get_proc_cpu_table().to_html(
-            #     classes='table table-striped')
-            # procMemTable = log.get_proc_mem_table().to_html(
-            #     classes='table table-striped')
         except Exception as e:
             title = "Cannot find log!"
             return render(request, "diskInfo.html", {"title": title})
@@ -836,11 +674,9 @@ def diskInfo(request, url_hostID):
 @login_required
 # @profile
 def dashboard(request):
-    logging.info("Enter function (dashboard)")
+    logging.debug("Enter function (dashboard)")
 
     check_offline()
-
-    # logging.info("Enter /dashboard/")
 
     class StatusCount:
 
@@ -880,11 +716,10 @@ def dashboard(request):
                     Authenticated_Machine.objects.filter(
                         mygroup__name__icontains=search).order_by("mygroup"))
 
-    if ams is None:
+    if not ams.exists():
         logging.info('No machine registered!')
         return render(request, "dashboard.html", {})
 
-    # logging.info("/dashboard/ ams exists")
 
     errors = []
     logs = []
@@ -899,7 +734,6 @@ def dashboard(request):
             'procByMem').filter(authenticated_machine=am).latest("datetime")
 
         if not log:
-            # logging.info("/dashboard/ no latest log in %s" % (str(am)))
             return render(request, "dashboard.html", {})
         elif (log):
             # Error msg
@@ -926,10 +760,6 @@ def dashboard(request):
             errors.append(tmp_log)
             logs.append(tmp_log)
 
-    # logging.info("/dashboard/ finish querying logs")
-    # logging.info(f"logs : {log.memJson}")
-    # logging.info("errors : %s" % errors)
-
     return render(request, "dashboard.html", {
         'logs': logs,
         'errors': errors,
@@ -941,17 +771,15 @@ def dashboard(request):
 # @profile
 @csrf_exempt
 def post_log(request):
+    logging.debug("Enter function (post_log)")
     if request.method == "POST":
         data = json.loads(request.body)
-        # logging.info(f"request.body : {data}")
         rDatetime = data['datetime']
         rHostJson = data['host_info']
         rHostID = rHostJson['hostId']
         tmpDict = {}
-        disk_policy_dict = {}
         # Trim disk partition info
         tmpDiskJson = data['disk_partitions']
-        #tmpDiskJson = [x for x in tmpDiskJson if (x['total'] != 0 and x['used'] != 0 and x['device'] != "tmpfs" and x['device'].find("/dev/loop") > 0 and x['device'] != "overlay")]
         tmpDiskJson = [
             x for x in tmpDiskJson
             if (x['total'] != 0 and x['used'] != 0 and x['fstype'] != "tmpfs"
@@ -963,36 +791,7 @@ def post_log(request):
                 and "/var/lib/kubelet" not in x['mountpoint'] and "/mnt" not in
                 x['mountpoint'] and "/media" not in x['mountpoint']
                 and "/source" not in x['mountpoint'] and x['fstype'] != "nfs")
-            # and "/var/lib/containers" not in x['mountpoint'])
         ]
-        # logging.info("filter disk json : %s" % (tmpDiskJson))
-        # 2022/03/21 format the DiskJson
-        # for tmp in tmpDiskJson:
-        #     tmp['total'] = sizeof_fmt(tmp['total'])
-        #     tmp['used'] = sizeof_fmt(tmp['used'])
-        #     tmp['free'] = sizeof_fmt(tmp['free'])
-        #     tmpDiskUsage = round(tmp['usedPercent'], 2)
-        #     tmpDiskMount = str(tmp['mountpoint'])
-        #     tmpDict[str(tmpDiskMount)] = tmpDiskUsage
-        #     disk_policy_str = disk_policy_str + "'%s': {'Pass:': %s, 'Warning': %s, 'Major': %s, 'Critical': %s}, " % (tmpDiskMount, 0, DEFAULT_WARNING, DEFAULT_MAJOR, DEFAULT_CRITICAL)
-        # disk_policy_str = disk_policy_str.rstrip(", ")
-        #     # disk_policy_str.rstrip(",")
-        # disk_policy_str = disk_policy_str + "}"
-        # disk_policy_dict[tmpDiskMount] = {
-        #         "Pass": 0,
-        #         "Warning": DEFAULT_WARNING,
-        #         "Major": DEFAULT_MAJOR,
-        #         "Critical": DEFAULT_CRITICAL
-        #     }
-        # print(tmpDiskJson)
-        # print(tmpDiskJson['used'])
-        # print(tmpDiskJson['free'])
-
-        # for tmp in tmpDiskJson:
-        #         tmpDiskUsage = round(tmp['usedPercent'], 2)
-        #         tmpDiskMount = str(tmp['mountpoint'])
-        #         tmpDict[str(tmpDiskMount)] = tmpDiskUsage
-        # logging.info("change disk json : %s" % (tmpDiskJson))
 
         am_set = Authenticated_Machine.objects.filter(hostID=rHostID)
 
@@ -1013,18 +812,14 @@ def post_log(request):
                 disk_policy_str = disk_policy_str + "'%s': {'Pass': %s, 'Major': %s, 'Warning': %s, 'Critical': %s}, " % (
                     tmpDiskMount, 0, DISK_MAJOR, DISK_WARNING, DISK_CRITICAL)
             disk_policy_str = disk_policy_str.rstrip(", ")
-            # disk_policy_str.rstrip(",")
             disk_policy_str = disk_policy_str + "}"
 
             # partition disk
-            # logging.info("*" * 40)
-            # diff_disk = eval(str(am.disk_policy)).keys() ^ eval(str(disk_policy_str)).keys()
             diff_disk = eval(str(disk_policy_str)).keys() - eval(
                 str(am.disk_policy)).keys()
             if diff_disk:
                 logging.info('add the new mountpoint')
                 am.disk_policy = eval(str(am.disk_policy))
-                # am.disk_policy = eval(str(am.disk_policy_str))
                 for mp in diff_disk:
                     am.disk_policy[mp] = {
                         "Pass": 0,
@@ -1033,27 +828,6 @@ def post_log(request):
                         "Critical": DISK_CRITICAL
                     }
 
-            # am.disk_policy = disk_policy_str
-            # am.cpu_policy = {
-            #         "Pass": 0,
-            #         "Warning": DEFAULT_WARNING,
-            #         "Major": DEFAULT_MAJOR,
-            #         "Critical": DEFAULT_CRITICAL
-            #     }
-            # am.memory_policy = {
-            #         "Pass": 0,
-            #         "Warning": DEFAULT_WARNING,
-            #         "Major": DEFAULT_MAJOR,
-            #         "Critical": DEFAULT_CRITICAL
-            #     }
-            # am.swap_policy = {
-            #         "Pass": 0,
-            #         "Warning": DEFAULT_WARNING,
-            #         "Major": DEFAULT_MAJOR,
-            #         "Critical": DEFAULT_CRITICAL
-            #     }
-            # logging.info("am.diskJson : %s" % (am.diskJson))
-            # am.disk_policy = disk_policy_dict
             am.last_log_update = make_aware(
                 datetime.strptime(rDatetime, '%Y-%m-%d %H:%M:%S'))
             am.save()
@@ -1070,17 +844,9 @@ def post_log(request):
                 tmpDict[str(tmpDiskMount)] = tmpDiskUsage
                 disk_policy_str = disk_policy_str + "'%s': {'Pass': %s, 'Warning': %s, 'Major': %s, 'Critical': %s }, " % (
                     tmpDiskMount, 0, DISK_WARNING, DISK_MAJOR, DISK_CRITICAL)
-                # disk_policy_dict[tmpDiskMount] = {
-                #     "Pass": 0,
-                #     "Warning": DEFAULT_WARNING,
-                #     "Major": DEFAULT_MAJOR,
-                #     "Critical": DEFAULT_CRITICAL
-                # }
 
             disk_policy_str = disk_policy_str.rstrip(", ")
-            # disk_policy_str.rstrip(",")
             disk_policy_str += "}"
-            # logging.info("round disk json : %s" % (tmpDiskJson))
             ### disk policy = "{'mountpoint1': {'Pass': 0, 'Warning': DEFAULT_WARNING, 'Major': DEFAULT_MAJOR, 'Critical': DEFAULT_CRITICAL},
             # 'mountpoint2': {'Pass': 0, 'Warning': DEFAULT_WARNING, 'Major': DEFAULT_MAJOR, 'Critical': DEFAULT_CRITICAL}}"
             am = Authenticated_Machine.objects.create(
@@ -1091,24 +857,17 @@ def post_log(request):
                 mygroup=g,
                 hostUptime=rHostJson['uptime'],
                 diskJson=tmpDiskJson,
-                # disk_policy=disk_policy_dict,
                 disk_policy=disk_policy_str,
             )
             logging.info('New authenticated_machine added')
 
         # Create New Log
-        # logging.info("info tmp_dict : %s" % (tmpDict))
-        # logging.DEBUG("tmp_dict" % (tmpDict))
         newLog = LogsEden.objects.create(
             authenticated_machine=am,
             cpuUsage=float(data['cpu_usage']),
             diskUsage=tmpDict,
-            # memJson=data['mem_stat']['usedPercent'],
             memJson=float(data['memory_usage']),
-            # swapMemJson=data['swap_mem_stat']['usedPercent'],
             swapMemJson=float(data['swap_usage']),
-            # procByCpu=data['proc_by_cpu'],
-            # procByMem=data['proc_by_mem'],
             datetime=make_aware(
                 datetime.strptime(rDatetime, '%Y-%m-%d %H:%M:%S')))
         create_err_msg(newLog, am)
@@ -1118,144 +877,12 @@ def post_log(request):
 
         return response
     else:
-        # print(HttpResponse())
         return HttpResponse(status=500)
-
-
-# request the api for python agent
-
-
-def post_log_python(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
-        rDatetime = data['hostime']
-        rLinuxDis = data['linuxDis']
-        # rHostJson = data['host_info']
-        rHostID = data['hostid']
-        tmpDict = {}
-        disk_policy_dict = {}
-        # Trim disk partition info
-        tmpDiskJson = data['diskall']
-        #tmpDiskJson = [x for x in tmpDiskJson if (x['total'] != 0 and x['used'] != 0 and x['device'] != "tmpfs" and x['device'].find("/dev/loop") > 0 and x['device'] != "overlay")]
-        tmpDiskJson = [
-            x for x in tmpDiskJson
-            if (x['total'] != 0 and x['used'] != 0 and x['device'] != "tmpfs"
-                and "/dev/loop" not in x['device'] and x['device'] != "overlay"
-                and "/var/lib/origin" not in x['mountpoint']
-                and "/var/lib/docker" not in x['mountpoint'])
-        ]
-
-        am_set = Authenticated_Machine.objects.filter(hostID=rHostID)
-        # if am_set[0].disk_policy['/'].get('Critical') == "":
-        # for tmpDiskInfo in tmpDiskJson:
-        #     tmpDiskUsage = round(tmpDiskInfo['usedPercent'],2)
-        #     tmpDiskMount = str(tmpDiskInfo['mountpoint'])
-        #     tmpDict[str(tmpDiskMount)] = tmpDiskUsage
-        #     disk_policy_dict[tmpDiskMount] = {
-        #         "Pass": 0, "Warning": DEFAULT_WARNING, "Major": DEFAULT_MAJOR, "Critical": DEFAULT_CRITICAL
-        #     }
-        # if
-        #     am = am_set[0]
-        #     am.hostUptime = rHostJson['uptime']
-        #     am.hostName = rHostJson['hostname']
-        #     am.diskJson = tmpDiskJson
-        #     am.disk_policy = disk_policy_dict
-        #     am.last_log_update = make_aware(
-        #         datetime.strptime(rDatetime, '%Y-%m-%d %H:%M:%S')
-        #     )
-        #     am.save()
-        # for tmpDiskInfo in tmpDiskJson:
-        #     tmpDiskUsage = round(tmpDiskInfo['usedPercent'],2)
-        #     tmpDiskMount = str(tmpDiskInfo['mountpoint'])
-        #     tmpDict[str(tmpDiskMount)] = tmpDiskUsage
-        #     disk_policy_dict[tmpDiskMount] = {
-        #         "Pass": 0, "Warning": DEFAULT_WARNING, "Major": DEFAULT_MAJOR, "Critical": DEFAULT_CRITICAL
-        #     }
-        # if am_set:
-        #     # if queryset is empty, couldn't specify key for the dictionary.
-        #     if '/' in am_set[0].disk_policy:
-        #         if am_set[0].disk_policy['/'].get('Critical') == "":
-        #             am = am_set[0]
-        #             am.hostUptime = rHostJson['uptime']
-        #             am.hostName = rHostJson['hostname']
-        #             am.diskJson = tmpDiskJson
-        #             am.disk_policy = disk_policy_dict
-        #             am.last_log_update = rDatetime
-        #             am.save()
-        #     # old data of the am.disk_policy maybe empty values
-        #     else:
-        #         am = am_set[0]
-        #         am.hostUptime = rHostJson['uptime']
-        #         am.hostName = rHostJson['hostname']
-        #         am.diskJson = tmpDiskJson
-        #         am.disk_policy = disk_policy_dict
-        #         am.last_log_update = rDatetime
-        #         am.save()
-
-        if (am_set.count() > 0):
-            am = am_set[0]
-            am.hostUptime = data['uptime']
-            am.hostName = data['hostname']
-            am.diskJson = tmpDiskJson
-            # am.disk_policy = disk_policy_dist
-            am.last_log_update = make_aware(
-                datetime.strptime(rDatetime, '%Y-%m-%d %H:%M:%S'))
-            am.save()
-        else:
-            try:
-                g = MyGroup.objects.get(name="ungrouped")
-            except Exception:
-                g = MyGroup.objects.create(name="ungrouped")
-
-            for tmp in tmpDiskJson:
-                tmpDiskUsage = round(tmp['percent'], 2)
-                tmpDiskMount = str(tmp['mountpoint'])
-                tmpDict[str(tmpDiskMount)] = tmpDiskUsage
-                disk_policy_dict[tmpDiskMount] = {
-                    "Pass": 0,
-                    "Warning": DEFAULT_WARNING,
-                    "Major": DEFAULT_MAJOR,
-                    "Critical": DEFAULT_CRITICAL
-                }
-
-            am = Authenticated_Machine.objects.create(
-                hostName=data['hostname'],
-                hostOS=rLinuxDis[0].split(' ')[0] +
-                rLinuxDis[0].split(' ')[1] + " " + rLinuxDis[1],
-                hostID=rHostID,
-                cpuCount=data['total_cpucores'],
-                mygroup=g,
-                hostUptime=data['uptime'],
-                diskJson=tmpDiskJson,
-                disk_policy=disk_policy_dict,
-            )
-            logging.info('New authenticated_machine added')
-
-        # Create New Log
-        newLog = LogsEden.objects.create(authenticated_machine=am,
-                                         cpuUsage=int(data['totalcpuusage']),
-                                         diskUsage=tmpDict,
-                                         memJson=data['memoryusage'],
-                                         swapMemJson=data['swapusage'],
-                                         procByCpu=data['cpuprocess'],
-                                         procByMem=data['memoryprocess'],
-                                         datetime=make_aware(
-                                             datetime.strptime(
-                                                 rDatetime,
-                                                 '%Y-%m-%d %H:%M:%S')))
-        create_err_msg(newLog, am)
-
-        response = HttpResponse()
-        response['refresh_time_interval'] = am.refresh_time_interval
-
-        return response
-    else:
-        return HttpResponse(status=500)
-
 
 # Assign group simotaniusly
 # @profile
 def assign_group(request):
+    logging.debug("Enter function (assign_group)")
     groups = MyGroup.objects.only("name").order_by('name')
 
     ams = Authenticated_Machine.objects.only("id",
@@ -1288,19 +915,10 @@ def assign_group(request):
         })
 
 
-# def popup(request):
-#     logging.info("enter view popup")
-#     if request.method == 'GET':
-#         return render(request, '/popup.html')
-
-#     elif request.method == 'POST':
-#         time_interval = request.POST.get('time_interval')
-#         return render(request, '/popup.html', {'time_interval': time_interval})
-
-
 # def change_group(request):
 @login_required
 def customized_report(request):
+    logging.debug("Enter function (customized_report)")
     ams = Authenticated_Machine.objects.all()
     if (request.method == "GET"):
         return render(request, "customized_report.html", locals())
@@ -1334,7 +952,6 @@ def customized_report(request):
 
         title = "自訂搜尋：%s~%s" % (str_start_date, str_end_date)
         filename = f"{am.hostName}-自訂搜尋-{str_start_date}-{str_end_date}.pdf"
-
         if str_view == "all":
             logs = get_logs_all(am, start_datetime, end_datetime)
         elif str_view == "hour":
@@ -1346,7 +963,7 @@ def customized_report(request):
             messages.error(request, error)
             return render(request, "customized_report.html", {})
 
-        if logs is None:
+        if len(logs) == 0:
             title = "時間內找不到日誌檔"
             messages.error(request, title)
             return render(request, 'customized_report.html', {})
@@ -1365,7 +982,7 @@ def customized_report(request):
                     log.datetime.astimezone(
                         timezone(timedelta(hours=8), "Asia/Taipei"))
                 }
-                logging.info(usageDict['datetime'])
+                logging.debug(usageDict['datetime'])
                 usageList.append(usageDict)
         elif str_view == "hour" or str_view == "day":
             for log in logs:
@@ -1382,10 +999,7 @@ def customized_report(request):
                 }
                 usageList.append(usageDict)
 
-        logging.info(usageList[0]['datetime'])
-        # logging.info(type(usageList[0]['datetime']))
         df = pd.DataFrame.from_records(usageList)
-        # df['datetime'] = df['datetime'].dt.tz_convert(get_localzone())
 
         # plot
         fig = plot_log_line_chart(df, am)
@@ -1427,6 +1041,7 @@ def customized_report(request):
 
 @login_required
 def customized_datereport(request):
+    logging.debug("Enter function (customized_datereport)")
 
     group_dict = {}
     group_list = []
@@ -1456,14 +1071,12 @@ def customized_datereport(request):
             })
 
     elif request.method == "POST":
-        logging.info("Enter function (customized_datereport) : POST")
+        logging.debug("Enter function (customized_datereport) : POST")
         check_cnt = 0
         str_hostName = request.POST.get("hostName")
         str_date = request.POST.get("start_date")
         str_month = request.POST.get("end_date")
         str_year = request.POST['yearpicker']
-        logging.info(f"datepicker: {str_date}")
-        logging.info(f"monthpicker: {str_month}")
 
         if str_date != '':
             check_cnt += 1
@@ -1527,10 +1140,8 @@ def customized_datereport(request):
                 'datetime': log.datetime
             }
             usageList.append(usageDict)
-        # print(usageList)
 
         df = pd.DataFrame.from_records(usageList)
-        # df['datetime'] = df['datetime'].dt.tz_convert(get_localzone())
 
         # plot
         fig = plot_log_line_chart(df, am)
@@ -1598,10 +1209,6 @@ def customized_datereport(request):
 
 
 def log_report_generate_csv(filename, logs, interval):
-    if interval == 1:
-        format_date = "%Y-%m-%d %H:%M:%S"
-    else:
-        format_date = "%Y-%m-%d"
 
     output = []
     response = HttpResponse(content_type='text/csv')
@@ -1644,11 +1251,7 @@ def log_report_generate_pdf(filename, html_var):
     Returns: sysmo/logserver/views.py
         response: pdf download
     """
-    # logging.info(f"args: {args}")
-    # logging.info(f"kwargs: {kwargs}")
-    # html_var = kwargs['html_var']
-    logging.info([log.datetime for log in html_var.get('logs')])
-    logging.info("(log_report_generate_pdf) Enter function.")
+    logging.debug("Enter function (log_report_generate_pdf)")
     # logging.info(f"html_var : {html_var}")
     env = Environment(loader=FileSystemLoader(settings.TEMPLATE_DIR))
 
@@ -1673,6 +1276,7 @@ def log_report_generate_pdf(filename, html_var):
 
 
 def delete_ams(request, url_hostName):
+    logging.debug("Enter function (delete_ams)")
     if request.method == "POST":
         try:
             am = Authenticated_Machine.objects.filter(
@@ -1688,6 +1292,7 @@ def delete_ams(request, url_hostName):
 
 
 def am_report_generate_csv(request):
+    logging.debug("Enter function (am_report_generate_csv)")
     if request.method == "GET":
         ams = Authenticated_Machine.objects.only("hostName", "hostID", "id",
                                                  "serverIP").all()
@@ -1710,30 +1315,5 @@ def am_report_generate_csv(request):
         writer.writerows(output)
         return response
 
-
-def check_date(*args):
-    date = [365, 30, 1]
-    cnt = 0
-    for arg in args:
-        if arg == None or arg == "":
-            cnt += 1
-            continue
-        date_type = arg
-    return date_type, date[cnt]
-
-
-# HANDLE error404
-
-
 def page_not_found(request, exception, template_name='errors/page_404.html'):
     return render(request, template_name)
-
-
-# @profile
-# def static(request, url):
-
-#     return render(request, "latestbymac.html", {
-#         'am': am,
-#         'logs': logs,
-#         'plot_div': plot_div
-#     })

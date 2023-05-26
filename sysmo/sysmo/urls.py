@@ -41,23 +41,22 @@ urlpatterns = [
     path('query_check_report/', views.query_check_report),
 
     # self-query-report
-    re_path(r'^set-query/(?P<url_hostID>[\w\-]+)/(?P<url_interval>\d{0,3})/$',
-            views.set_query_for_self_defined_report),
-    path('custom-query-report/', views.custom_query_report),
+    # re_path(r'^set-query/(?P<url_hostID>[\w\-]+)/(?P<url_interval>\d{0,3})/$',
+    #         views.set_query_for_self_defined_report),
+    # path('custom-query-report/', views.custom_query_report),
 
     # defined report
-    re_path(
-        r'^saved-report/(?P<url_hostID>[\w\-]+)/(?P<url_interval>\d{0,3})/$',
-        views.saved_report),
+    # re_path(
+    #     r'^saved-report/(?P<url_hostID>[\w\-]+)/(?P<url_interval>\d{0,3})/$',
+    #     views.saved_report),
 
     # post log
     path('post_log/', views.post_log),
-    path('post_log_python/', views.post_log_python),
+    # path('post_log_python/', views.post_log_python),
     path('assign_group/', views.assign_group),
 
     # 報表下載 (Report Download)
-    re_path(r'reports/(?P<url_interval>\d{0,3})/(?P<url_hostID>[\w\-]+)/',
-            # views.reports,
+    re_path(r'reports/(?P<url_interval>\d{0,3})/(?P<url_hostID>[\w\-]+)/',\
             views.reports,
             name="reports"),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

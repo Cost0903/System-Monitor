@@ -1,0 +1,20 @@
+[Unit]
+Description=System Monitor Server Sevice
+
+Wants=network-pre.target
+After=network.service
+
+[Service]
+User=nginx
+Group=nginx
+WorkingDirectory=/home/cost/code/new_sysmo
+ExecStart=/usr/sbin/uwsgi --ini uwsgi.ini
+ExecReload=/bin/kill -HUP $MAINPID
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=sysmo-server
+# supress to log debug and error output also to /var/log/messages
+
+[Install]
+WantedBy=multi-user.target
+

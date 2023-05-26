@@ -15,10 +15,9 @@ def get_isms():
         'authorization': "ldap xxxxxxxxxxxxxxxxxxxxx"
     }
 
-    conn.request(
-        "GET", "/ISMS_OIDC2/hardwareinfo/search?OS_name=RHEL",
-        headers=headers
-    )
+    conn.request("GET",
+                 "/ISMS_OIDC2/hardwareinfo/search?OS_name=RHEL",
+                 headers=headers)
 
     res = conn.getresponse()
     data = json.loads(res.read().decode("utf-8"))
@@ -26,13 +25,15 @@ def get_isms():
     pprint(data)
 
     for d in data:
-        am = Authenticated_Machine.objects.filter(hostName__icontains = d['ServerName'])
+        am = Authenticated_Machine.objects.filter(
+            hostName__icontains=d['ServerName'])
         if am:
             am[0].asset_ID = d['asset_id']
             am[0].depository_name = d['depository_name']
             am[0].backup_name = d['backup_name']
             am[0].serverIP = d['ServerIP']
             am[0].save()
+
 
 def isms_file():
     logging.info("(isms_file) Enter function.")
@@ -41,7 +42,7 @@ def isms_file():
     {
         'asset_id': 'H0000626',
         'ServerName': 'xxxxx',
-        'ServerIP': '172.16.221.91',
+        'ServerIP': '127.0.0.1',
         'Core': '2*2C',
         'OS_id': 288,
         'OS': 'RHEL'
@@ -55,10 +56,11 @@ def isms_file():
     """
     isms_file = "/opt/sysmo/server/isms.json"
     with open(isms_file, 'r') as f:
-        isms_js =  json.loads(f.read())
+        isms_js = json.loads(f.read())
         logging.info("(isms_file) Loading ISMS.json file")
         for j in isms_js:
-            am = Authenticated_Machine.objects.filter(hostName__icontains = j['ServerName'])
+            am = Authenticated_Machine.objects.filter(
+                hostName__icontains=j['ServerName'])
             if am:
                 am[0].asset_ID = j['asset_id']
                 am[0].depository_name = j['depository_name']
